@@ -1,8 +1,7 @@
-
 function Intensify3D_Plus(Folder,NSTD,MSFS,MBI,HasBackground,NormalizeType,Threads,ImageToMeasure,FolderToMeasure,handles,UserSelectedThrehold,TissueSmoothing,ExistingSupportFilesFolder,XYNorm,Between_Stack_Normalization)
 % for normalizaing your entire imaging exp in 3D and across different biological samples
 % to operate see User_GUI_Intensify3DPlus_v_1_0
-% all files must be in tif format and of the same xy size 
+% all files must be in tif format and of the same xy size
 % Folder - Parent folder with subdirectories
 % NSTD - Number of standard deviations to use for automatic threshold detection
 % MSFS - Spatial filter size
@@ -14,32 +13,32 @@ function Intensify3D_Plus(Folder,NSTD,MSFS,MBI,HasBackground,NormalizeType,Threa
 % images will be normalized according to the intensity quantiles of this
 % image
 % FolderToMeasure - Folder containing "ImageToMeasure"
-% handles - Graphical handles 
+% handles - Graphical handles
 % UserSelectedThrehold - manual threshold for background detection
 % TissueSmoothing - Smoothing factor for background detection
-% ExistingSupportFilesFolder - folder that already contains good support files 
-% XYNorm - Do xy normalization or only Z normalzation 
+% ExistingSupportFilesFolder - folder that already contains good support files
+% XYNorm - Do xy normalization or only Z normalzation
 % Between_Stack_Normalization - type of normalization to use between
 % samples
 
 %% initiation
 clc
-% get file folders 
+% get file folders
 MotherDir = Folder;
-Directories = dir(MotherDir); 
+Directories = dir(MotherDir);
 Directories = Directories(3:end,:);
 Directories = Directories([Directories.isdir],:);
 NoOfQuantiles = 10000;
 
-%% initiation of parallel pool 
+%% initiation of parallel pool
 warning('off');
 % dialog('Getting Started....',handles);
 if Threads
     if ~isempty(gcp('nocreate'))
-         delete(gcp); 
+         delete(gcp);
     else
         parpool(Threads);
-    end   
+    end
 end
 
 
@@ -51,7 +50,7 @@ for d = 1:length(Directories)
     Folder16bitInfo = dir('*.tif');
     flag = size(dir('NormalizedBackground'));
     if ~flag(1);
-        mkdir('NormalizedBackground'); 
+        mkdir('NormalizedBackground');
     else
         cd('NormalizedBackground');
         toDelete = dir;
@@ -71,7 +70,7 @@ for d = 1:length(Directories)
                     delete(FileName);
                  end
             end
-        end    
+        end
     end
 end
 
@@ -85,7 +84,7 @@ ImMd = Ti.read();
 ImD = double(ImMd);
 ImSize = size(ImD);
 Ti.close();
-FilterXY = [MSFS MSFS];        
+FilterXY = [MSFS MSFS];
 quantiles = quantile(ImD(:),NoOfQuantiles);
 largerthan = find(quantiles>MBI);
 if ~isempty(largerthan)
@@ -110,7 +109,7 @@ end
 handles = 0;
 cd(MotherDir)
 
-   
+
     f = waitbar(0,'Normalizing each sample to itself..... ');
 %%
 for d = 1:length(Directories)
@@ -126,11 +125,11 @@ for d = 1:length(Directories)
         I = imread([Folder,'\',FolderInfo(FirstImageFileIndex+ImageToMeasure-1).name]);
         MaxBsckgroundGuess = quantile(I(:),UserSelectedQuantile);
         MaxIm(d) = LastImageFileIndex-FirstImageFileIndex+1;
-        delete([Folder,'\workspace.mat']); 
+        delete([Folder,'\workspace.mat']);
         MinIm = 1;
         [NewLowerUpperQuantiles{d},NewSemiQuantiles{d}]= Intensify3D_Core(Folder,MinIm,MaxIm(d)...
             ,NSTD,MaxBsckgroundGuess,MSFS,HasBackground,NormalizeType,Threads,ImageToMeasure,handles,...
-            UserSelectedThrehold,TissueSmoothing,ExistingSupportFilesFolders{d},XYNorm) ;    
+            UserSelectedThrehold,TissueSmoothing,ExistingSupportFilesFolders{d},XYNorm) ;
     toc
 end
 
@@ -138,10 +137,10 @@ end
 AllSemiQuantilesMean = [];
 AllLowerUpperQuantilesMean = [];
 AllEstimatedMaxTissueIntensitySeriers = [];
-for d = 1:length(Directories) 
-    AllSemiQuantilesMean = [AllSemiQuantilesMean; NewSemiQuantiles{d}]; 
-    AllLowerUpperQuantilesMean = [AllLowerUpperQuantilesMean; NewLowerUpperQuantiles{d}]; 
-    AllEstimatedMaxTissueIntensitySeriers = [AllEstimatedMaxTissueIntensitySeriers; NewLowerUpperQuantiles{d}(2)];     
+for d = 1:length(Directories)
+    AllSemiQuantilesMean = [AllSemiQuantilesMean; NewSemiQuantiles{d}];
+    AllLowerUpperQuantilesMean = [AllLowerUpperQuantilesMean; NewLowerUpperQuantiles{d}];
+    AllEstimatedMaxTissueIntensitySeriers = [AllEstimatedMaxTissueIntensitySeriers; NewLowerUpperQuantiles{d}(2)];
 end
 MedianAllSemiQuantilesMean = median(AllSemiQuantilesMean);
 MedianAllLowerUpperQuantilesMean = median(AllLowerUpperQuantilesMean);
@@ -150,7 +149,7 @@ cd(MotherDir)
 save workspace % save parameters
 
 %% Normalize all stacks according to same histogram
-if Between_Stack_Normalization == 2 % contrast stretch 
+if Between_Stack_Normalization == 2 % contrast stretch
     f = waitbar(0,'Normalizing across samples with constrast stretch');
     for d = 1:length(Directories)
         waitbar(d/length(Directories),f);
@@ -161,7 +160,7 @@ if Between_Stack_Normalization == 2 % contrast stretch
 
        LowerUpperQuantilesMean = [MedianAllLowerUpperQuantilesMean(1) MedianAllLowerUpperQuantilesMean(2)];
         LowerQuantileStack = AllLowerUpperQuantilesMean(d,1);
-        UpperQuantileStack = AllLowerUpperQuantilesMean(d,2); 
+        UpperQuantileStack = AllLowerUpperQuantilesMean(d,2);
            for i = 1:length(Folder16bitInfo)
                warning('off','all');
                Ti = Tiff([Folder16bitInfo(i).folder,'' filesep',Folder16bitInfo(i).name],'r+');
@@ -169,45 +168,45 @@ if Between_Stack_Normalization == 2 % contrast stretch
                NormXYZ = ImD;
                if HasBackground
                    Ts = Tiff([Folder16bitInfo(i).folder, filesep 'SupportImages' filesep 'Tissue_Area_', sprintf('%3.4d',i)],'r');
-                     ImS = Ts.read(); 
+                     ImS = Ts.read();
                      Ts.close();
                else
                    ImS = ImD>=0;
                end
-               ImSLin = logical(ImS(:));  
-               NormXYZ(ImSLin) = (ImD(ImSLin) - LowerQuantileStack)*( (LowerUpperQuantilesMean(2) - LowerUpperQuantilesMean(1)) / (UpperQuantileStack - LowerQuantileStack) ) + LowerUpperQuantilesMean(1); % contrast sretching          
+               ImSLin = logical(ImS(:));
+               NormXYZ(ImSLin) = (ImD(ImSLin) - LowerQuantileStack)*( (LowerUpperQuantilesMean(2) - LowerUpperQuantilesMean(1)) / (UpperQuantileStack - LowerQuantileStack) ) + LowerUpperQuantilesMean(1); % contrast sretching
                SaveTiffInCode([Folder16bitInfo(i).folder,filesep,'Norm2All' filesep,'All_',Folder16bitInfo(i).name],16,'w',NormXYZ);
            end
 
         d
-    end   
+    end
 
 end
 %%
     clc
-if Between_Stack_Normalization == 1 % quantile    
+if Between_Stack_Normalization == 1 % quantile
      SemiQuantilesMean = MedianAllSemiQuantilesMean;
      EstimatedMaxTissueIntensitySeriersCurrent = EstimatedMaxTissueIntensitySeriers{d};
-     
+
          for i = MinIm:MaxIm
              warning('off','all');
              Folder16bitInfoPar = Folder16bitInfo;
              Ti = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfoPar(FirstImageFileIndex+i-1).name],'r+');
              ImD = double(Ti.read());
-             % Convert to double  
+             % Convert to double
              if HasBackground
                  Ts = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Tissue_Area_', sprintf('%3.4d',i)],'r');
-                 ImS = Ts.read(); 
+                 ImS = Ts.read();
                  Ts.close();
-             else 
+             else
                  ImS = ImD>=0;
              end
-             
+
              ImSizePar = size(ImS);
              ImSLin = ImS(:);
              % Remove_Peaks (Somas)
-             if UserDefinedQuantile ~= 1 
-                 UpperQuantile = EstimatedMaxTissueIntensitySeriers{i}; 
+             if UserDefinedQuantile ~= 1
+                 UpperQuantile = EstimatedMaxTissueIntensitySeriers{i};
              else
                  UpperQuantile = quantile(ImD(ImSLin),0.99);
              end
@@ -223,11 +222,11 @@ if Between_Stack_Normalization == 1 % quantile
              QunatiledImd(OrderdImD) = vq;
              NormXYZ(ImSLin) = QunatiledImd;
              NormXYZ = reshape(NormXYZ,ImSizePar(1),ImSizePar(2));
-             NormXYZ(Maxes) = (max(NormXYZ(ImSLin))/min(NormXYZ(Maxes)))*NormXYZ(Maxes); 
+             NormXYZ(Maxes) = (max(NormXYZ(ImSLin))/min(NormXYZ(Maxes)))*NormXYZ(Maxes);
                SaveTiffInCode([Folder16bitInfo(i).folder,filesep,'Norm2All' filesep,'All_',Folder16bitInfo(i).name],16,'w',NormXYZ);
          end
-     
-end  
+
+end
 %%
  if Between_Stack_Normalization == 3 % Upper Percentile
      EstimatedMaxTissueIntensitySeriersNorm = NormAllEstimatedMaxTissueIntensitySeriers(d);
@@ -243,8 +242,8 @@ end
         NormXYZ = (NormXY./EstimatedMaxTissueIntensitySeriersNorm(i)); %Normalize
         SaveTiffInCode([Folder16bitInfo(i).folder,filesep,'Norm2All' filesep,'All_',Folder16bitInfo(i).name],16,'w',NormXYZ);
         end
-     
- end    
+
+ end
 close(f)
 end
 
@@ -266,5 +265,3 @@ if bit==16; Ti.write(uint16(Image)); end
 Ti.close();
 
 end
-
-

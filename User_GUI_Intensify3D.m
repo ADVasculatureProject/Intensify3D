@@ -64,7 +64,7 @@ guidata(hObject, handles);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = User_GUI_Intensify3D_OutputFcn(hObject, eventdata, handles) 
+function varargout = User_GUI_Intensify3D_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -108,7 +108,7 @@ import java.lang.*;
 r=Runtime.getRuntime;
 ncpu=r.availableProcessors;
 Directories = dir(Folder);
-DirectoryIndex = find([Directories.isdir])'; 
+DirectoryIndex = find([Directories.isdir])';
 for i = 1:length(DirectoryIndex)-2
     StringArray{i,1} = [num2str(i),') ',Directories(DirectoryIndex(i+2)).name];
 end
@@ -234,7 +234,7 @@ end
 % --- Executes on button press in Execute.
 function Execute_Callback(hObject, eventdata, handles)
 
-try close f 
+try close f
 catch
 end
 
@@ -342,9 +342,9 @@ function ImageShow_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 Folder = get(handles.StackFolder,'string');
 Directories = dir(Folder);
-DirectoryIndex = find([Directories.isdir])'; 
+DirectoryIndex = find([Directories.isdir])';
 DirectoryIndex = DirectoryIndex(3:end);
-StringDir = [Directories(DirectoryIndex(str2num(get(handles.edit35,'string')))).name]; 
+StringDir = [Directories(DirectoryIndex(str2num(get(handles.edit35,'string')))).name];
 cd([Folder,'\',StringDir]);
 FolderInfo = dir('*.tif');
 FirstImageFileIndex = find([FolderInfo.bytes]>10*1000,1,'first');

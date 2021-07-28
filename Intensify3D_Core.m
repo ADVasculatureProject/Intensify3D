@@ -5,17 +5,17 @@ tic % start Stopwatch
 warning('off');
 if Threads
     if ~isempty(gcp('nocreate'))
-%         delete(gcp); 
+%         delete(gcp);
     else
         parpool(Threads);
-    end   
+    end
 end
 cd(DirectoryOf16bit);
 % delete old files
 Folder16bitInfo = dir('*.tif');
 % flag = size(dir('NormalizedBackground'));
 % if ~flag(1);
-%     mkdir('NormalizedBackground'); 
+%     mkdir('NormalizedBackground');
 % else
 %     cd('NormalizedBackground');
 %     toDelete = dir;
@@ -27,7 +27,7 @@ Folder16bitInfo = dir('*.tif');
 %     if ~flag(1) && HasBackground
 %         mkdir('SupportImages');
 %     else
-%         if HasBackground 
+%         if HasBackground
 %              cd('SupportImages');
 %              toDelete = dir;
 %              for k = 3 : length(toDelete)
@@ -35,7 +35,7 @@ Folder16bitInfo = dir('*.tif');
 %                 delete(FileName);
 %              end
 %         end
-%     end    
+%     end
 % end
 % cd(DirectoryOf16bit);
 %get image size
@@ -55,10 +55,10 @@ if HasBackground && ~(length(ExistingSupportFilesFolder)-1) %#ok<*BDLOG>
         [Inn , ~, ~] = neighbourND( 1:ImSize(1)*ImSize(2), ImSize, [1 1] );
         Inn((Inn==0)) = 1; % define edges as 1
         BackroundThreshold = [];
-    else 
+    else
         Inn = [];
         if ~UserSelectedThrehold
-            % measure statistics of 10 readomly selected images 
+            % measure statistics of 10 readomly selected images
             SelectedImages = 1:ceil(length(Folder16bitInfo)/20):MaxIm;
             counter = 0;
             ThresholdValue = zeros(length(SelectedImages),1);
@@ -69,13 +69,13 @@ if HasBackground && ~(length(ExistingSupportFilesFolder)-1) %#ok<*BDLOG>
                 Ti.close();
                 ImD_Downsampled = medfilt2(ImD(1:10:end,1:10:end));
                 ThresholdValue(counter) = SimpleThrehold(ImD_Downsampled);
-    %         ThresholdValue = STDNumber*5; % added for noa take a look 
+    %         ThresholdValue = STDNumber*5; % added for noa take a look
             end
-            BackroundThreshold = quantile(ThresholdValue,1-(STDNumber+ 0.001)/10.1);       
+            BackroundThreshold = quantile(ThresholdValue,1-(STDNumber+ 0.001)/10.1);
         else
             BackroundThreshold = UserSelectedThrehold;
         end
-            
+
     end
 else
     Inn = [];
@@ -85,11 +85,11 @@ end
 %% estimate quantile from selcted Image
 Ti = Tiff([DirectoryOf16bit,'' filesep '',Folder16bitInfo(FirstImageFileIndex+ImageToSelectFrom-1).name],'r');
 ImMd = Ti.read();
-% Convert to double 
+% Convert to double
 ImD = double(ImMd);
-% find quantile 
-NoOfQuantiles = 10000; 
-if HasBackground 
+% find quantile
+NoOfQuantiles = 10000;
+if HasBackground
      if any(length(ExistingSupportFilesFolder)-1)
          Ts = Tiff([ExistingSupportFilesFolder,'' filesep 'Tissue_Area_', sprintf('%3.4d',(FirstImageFileIndex+ImageToSelectFrom-1))],'r');
          ImS = logical(Ts.read());
@@ -100,25 +100,25 @@ else
      ImS = ones(ImSize);
 end
 ImageQuantiles = quantile(double(ImD(ImS>0)),NoOfQuantiles);
-[~,UserDefinedQuantile] = min(abs(ImageQuantiles-double(MaxTissueIntensity))); % find quantile 
+[~,UserDefinedQuantile] = min(abs(ImageQuantiles-double(MaxTissueIntensity))); % find quantile
 UserDefinedQuantile = UserDefinedQuantile/NoOfQuantiles;
 
 
 % clc
-      
+
 %% Normalize along the XY plane
 % image statistics
 EstimatedMaxTissueIntensitySeriers = zeros(length(MinIm:MaxIm),1); % for upper precentile
-SemiQuantiles = zeros(length(MinIm:MaxIm),NoOfQuantiles); % for Semi-Qantile 
+SemiQuantiles = zeros(length(MinIm:MaxIm),NoOfQuantiles); % for Semi-Qantile
 LowerUpperQuantiles = zeros(length(MinIm:MaxIm),2);% for Contrast Stretch
-if HasBackground 
+if HasBackground
     % Estimate Background
- 
+
     if ~(length(ExistingSupportFilesFolder)-1);
         % parfor_progress(MaxIm-MinIm+1);
 
         if Threads
-            parfor i = MinIm:MaxIm         
+            parfor i = MinIm:MaxIm
                 warning('off','all');
                 % init
                 ImSizePar = ImSize;
@@ -127,11 +127,11 @@ if HasBackground
                 ImD = (Ti.read());
                 Ti.close();
                 FindBackground(i,DirectoryOf16bit,HasBackground,ImD,Inn,BackroundThreshold,ImSizePar,TissueSmoothing,STDNumber,1);
-               
-                % parfor_progress; 
+
+                % parfor_progress;
             end
         else
-            for i = MinIm:MaxIm  
+            for i = MinIm:MaxIm
                    warning('off','all');
                 % init
                 ImSizePar = ImSize;
@@ -139,10 +139,10 @@ if HasBackground
                 Ti = Tiff([DirectoryOf16bit,'' filesep '',Folder16bitInfoPar(FirstImageFileIndex+i-1).name],'r');
                 ImD = double(Ti.read());
                 Ti.close();
-                
+
                 FindBackground(i,DirectoryOf16bit,HasBackground,ImD,Inn,BackroundThreshold,ImSizePar,TissueSmoothing,STDNumber,1);
-              
-           
+
+
             end
          end
         warning('off','all');
@@ -158,7 +158,7 @@ if HasBackground
                 Ts2 = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Supp_Image_', sprintf('%3.4d',i+ii(2))],'r');
                 ImS2 = Ts2.read();
                 Ts = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Supp_Image_', sprintf('%3.4d',i+ii(3))],'r+');
-                ImS = Ts.read();          
+                ImS = Ts.read();
                 Ts4 = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Supp_Image_', sprintf('%3.4d',i+ii(4))],'r');
                 ImS4 = Ts4.read();
                 Ts5 = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Supp_Image_', sprintf('%3.4d',i+ii(5))],'r');
@@ -167,17 +167,17 @@ if HasBackground
                 Ts1.close(); Ts2.close(); Ts.close();Ts4.close(); Ts5.close();
                 SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Tissue_Area_', sprintf('%3.4d',i)],1,'w',ImS)
             end
-        else 
-            for i = MinIm:MaxIm       
+        else
+            for i = MinIm:MaxIm
                 if  (i<(MinIm+2)); ii = [0 0 0 1 2]; end
                 if (i>=(MinIm+2))&&(i<=(MaxIm-2)); ii = [-2 -1 0 1 2]; end
-                if (i>(MaxIm-2)); ii = [-2 -1 0 0 0]; end    
+                if (i>(MaxIm-2)); ii = [-2 -1 0 0 0]; end
                 Ts1 = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Supp_Image_', sprintf('%3.4d',i+ii(1))],'r');
                 ImS1 = Ts1.read();
                 Ts2 = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Supp_Image_', sprintf('%3.4d',i+ii(2))],'r');
                 ImS2 = Ts2.read();
                 Ts = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Supp_Image_', sprintf('%3.4d',i+ii(3))],'r+');
-                ImS = Ts.read();          
+                ImS = Ts.read();
                 Ts4 = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Supp_Image_', sprintf('%3.4d',i+ii(4))],'r');
                 ImS4 = Ts4.read();
                 Ts5 = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Supp_Image_', sprintf('%3.4d',i+ii(5))],'r');
@@ -189,26 +189,26 @@ if HasBackground
         end
         for i = MinIm:MaxIm; delete([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Supp_Image_', sprintf('%3.4d',i)]); end
         %close(h)
-        else 
-             for i = MinIm:MaxIm 
+        else
+             for i = MinIm:MaxIm
                  copyfile([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Supp_Image_', sprintf('%3.4d',i)],...
-                     [DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Tissue_Area_', sprintf('%3.4d',i)]); 
+                     [DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Tissue_Area_', sprintf('%3.4d',i)]);
              end
              for i = MinIm:MaxIm; delete([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Supp_Image_', sprintf('%3.4d',i)]); end
         end
 %     else
-%         for i = MinIm:MaxIm 
+%         for i = MinIm:MaxIm
 %                  copyfile([ExistingSupportFilesFolder{1} filesep 'Tissue_Area_', sprintf('%3.4d',i)],...
-%                      [DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Tissue_Area_', sprintf('%3.4d',i)]); 
+%                      [DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Tissue_Area_', sprintf('%3.4d',i)]);
 %         end
-        
+
     end
-    
+
 % Normalize with background detection
     if Threads
         % parfor_progress(MaxIm-MinIm+1);
         parfor i = MinIm:MaxIm
-             
+
                 % Load Images
                 FilterXYPar = FilterXY;
 %                 Folder16bitInfoPar = Folder16bitInfo;
@@ -219,65 +219,65 @@ if HasBackground
                 Ts = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Tissue_Area_', sprintf('%3.4d',i)],'r');
                 ImS = logical(Ts.read());
                 if sum(ImS(:))> ((size(ImS,1)*size(ImS,1))/1000) % test if a tissue was detected in more that 0.1% of the pixels, otherwize skip image
-                Ts.close();        
-                % find quantile value for each image individually 
+                Ts.close();
+                % find quantile value for each image individually
                 ImageQuantiles = quantile(ImD(ImS),NoOfQuantiles);
                 if UserDefinedQuantile==1  % enable the user to define a value larger than the brightest pixel
-                     EstimatedMaxTissueIntensity = max(ImD(:)); 
+                     EstimatedMaxTissueIntensity = max(ImD(:));
                 else
                      EstimatedMaxTissueIntensity = ImageQuantiles(round(UserDefinedQuantile*NoOfQuantiles));
                 end
-                % Remove_Peaks and zeros 
+                % Remove_Peaks and zeros
                 ImD_Smooth = ImD;
                 Maxes = (ImD(:) >= EstimatedMaxTissueIntensity);
                 TissuePixelvalues = ImD(logical(ImS.*(ImD_Smooth<quantile(ImD_Smooth(:),0.9)).*(ImD_Smooth>quantile(ImD_Smooth(:),0.1))));
-                if size(TissuePixelvalues(:),1)>100     
+                if size(TissuePixelvalues(:),1)>100
                    RandValues = emprand(TissuePixelvalues,sum(sum(Maxes)),1); % generate signal-replacing values
-                   ImD_Smooth(Maxes)= RandValues;   
-                end     
+                   ImD_Smooth(Maxes)= RandValues;
+                end
                % Smooth along XY
                 if ToNormXY
                     ImD_Smooth(not(ImS)) = ImageQuantiles(NoOfQuantiles/2);%quantile(ImD(TissuePixelIndices),UserDefinedQuantile);
                     ImD_Smooth = Savitzky_Golay(ImD_Smooth,FilterXYPar(1),FilterXYPar(2),1);
                     ImD_Smooth = Savitzky_Golay(ImD_Smooth,FilterXYPar(1),FilterXYPar(2),1); % 2nd time
-                    ImD_Smooth_Norm = ImD_Smooth/max(ImD_Smooth(:));   
+                    ImD_Smooth_Norm = ImD_Smooth/max(ImD_Smooth(:));
                     NormXY = (ImD./ImD_Smooth_Norm);
                     MedNormXY = median(NormXY(ImS(:)));
                     NormXY = (NormXY/(MedNormXY/median(ImD(ImS(:))))); % standartize to old values
                     SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',uint16(NormXY));
                 else  % Skip XY Normalization
                     NormXY = ImD;
-                    SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',uint16(NormXY));       
+                    SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',uint16(NormXY));
                 end
                 NonZeroMaxes = (NormXY(:).*Maxes)>0; %Changed from MedNormXY to 0 in 3.9.19
-                NewMBI = min(NormXY(NonZeroMaxes));   
+                NewMBI = min(NormXY(NonZeroMaxes));
 
-                % log Statistics 
-   
+                % log Statistics
+
                 ImLin = ImS(:)>0;
-                if UserDefinedQuantile ~= 1 
-                   UpperQuantile = NewMBI; 
+                if UserDefinedQuantile ~= 1
+                   UpperQuantile = NewMBI;
                 else
                    UpperQuantile = quantile(NormXY(ImLin),0.99);
                 end
-                
+
            if i == 1501
-               i 
+               i
            end
-                Maxes = (NormXY(:) >= UpperQuantile); 
+                Maxes = (NormXY(:) >= UpperQuantile);
                 ImageQuantiles = quantile(NormXY(logical(ImLin.*not(Maxes))),NoOfQuantiles);
-                SemiQuantiles(i,:) =  ImageQuantiles; 
+                SemiQuantiles(i,:) =  ImageQuantiles;
                 % for Contrast Stretch
                 LowerValue = quantile(NormXY(ImLin),0.25);
                 LowerUpperQuantiles(i,:) = [LowerValue UpperQuantile];
                 % for upper precentile
                 EstimatedMaxTissueIntensitySeriers(i) = UpperQuantile;
            %     clc
-                % parfor_progress;    
-            
+                % parfor_progress;
+
            end
         end
-    else 
+    else
         for i = MinIm:MaxIm
             % Load Images
                 FilterXYPar = FilterXY;
@@ -288,67 +288,67 @@ if HasBackground
                 % support
                 Ts = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Tissue_Area_', sprintf('%3.4d',i)],'r');
                 ImS = logical(Ts.read());
-                Ts.close();           
+                Ts.close();
                 if sum(ImS(:))> ((size(ImS,1)*size(ImS,1))/1000) % test if a tissue was detected in more that 0.1% of the pixels, otherwize skip image
 
 
-                % find quantile value for each image individually 
+                % find quantile value for each image individually
                 ImageQuantiles = quantile(ImD(ImS),NoOfQuantiles);
                 if UserDefinedQuantile==1  % enable the user to define a value larger than the brightest pixel
-                     EstimatedMaxTissueIntensity = max(ImD(:)); 
+                     EstimatedMaxTissueIntensity = max(ImD(:));
                 else
                      EstimatedMaxTissueIntensity = ImageQuantiles(round(UserDefinedQuantile*NoOfQuantiles));
                 end
-                % Remove_Peaks and zeros 
+                % Remove_Peaks and zeros
                 ImD_Smooth = ImD;
                 Maxes = (ImD(:) >= EstimatedMaxTissueIntensity);
                 TissuePixelvalues = ImD(logical(ImS.*(ImD_Smooth<quantile(ImD_Smooth(:),0.9)).*(ImD_Smooth>quantile(ImD_Smooth(:),0.1))));
-                if size(TissuePixelvalues(:),1)>100     
+                if size(TissuePixelvalues(:),1)>100
                    RandValues = emprand(TissuePixelvalues,sum(sum(Maxes)),1); % generate signal-replacing values
-                   ImD_Smooth(Maxes)= RandValues;   
-                end     
+                   ImD_Smooth(Maxes)= RandValues;
+                end
                 % Smooth along XY
                 if ToNormXY
                     ImD_Smooth(not(ImS)) = ImageQuantiles(NoOfQuantiles/2);%quantile(ImD(TissuePixelIndices),UserDefinedQuantile);
                     ImD_Smooth = Savitzky_Golay(ImD_Smooth,FilterXYPar(1),FilterXYPar(2),1);
                     ImD_Smooth = Savitzky_Golay(ImD_Smooth,FilterXYPar(1),FilterXYPar(2),1); % 2nd time
-                    ImD_Smooth_Norm = ImD_Smooth/max(ImD_Smooth(:));   
+                    ImD_Smooth_Norm = ImD_Smooth/max(ImD_Smooth(:));
                     NormXY = (ImD./ImD_Smooth_Norm);
                     MedNormXY = median(NormXY(ImS(:)));
                     NormXY = (NormXY/(MedNormXY/median(ImD(ImS(:))))); % standartize to old values
                     SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',uint16(NormXY));
                 else  % Skip XY Normalization
                     NormXY = ImD;
-                    SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',uint16(NormXY));       
+                    SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',uint16(NormXY));
                 end
                 NonZeroMaxes = (NormXY(:).*Maxes)>0; %Changed from MedNormXY to 0 in 3.9.19
                 NewMBI = min(NormXY(NonZeroMaxes));
 
 
                 ImLin = ImS(:);
-                if UserDefinedQuantile ~= 1 
-                   UpperQuantile = NewMBI; 
+                if UserDefinedQuantile ~= 1
+                   UpperQuantile = NewMBI;
                 else
                    UpperQuantile = quantile(NormXY(ImLin),0.99);
                 end
-                Maxes = (NormXY(:) >= UpperQuantile); 
+                Maxes = (NormXY(:) >= UpperQuantile);
                 ImageQuantiles = quantile(NormXY(logical(ImLin.*not(Maxes))),NoOfQuantiles);
-                SemiQuantiles(i,:) =  ImageQuantiles; 
+                SemiQuantiles(i,:) =  ImageQuantiles;
                 % for Contrast Stretch
                 LowerValue = quantile(NormXY(ImLin),0.25);
                 LowerUpperQuantiles(i,:) = [LowerValue UpperQuantile];
                 % for upper precentile
                 EstimatedMaxTissueIntensitySeriers(i) = UpperQuantile;
            %     clc
-                % parfor_progress;  
-            
+                % parfor_progress;
+
                 end
         end
     end
-else % Normalize with no background detection 
+else % Normalize with no background detection
     if Threads
         % parfor_progress(MaxIm-MinIm+1);
-        parfor i = MinIm:MaxIm  
+        parfor i = MinIm:MaxIm
                 i
                 warning('off','all');
                 % init
@@ -356,16 +356,16 @@ else % Normalize with no background detection
                 Folder16bitInfoPar = Folder16bitInfo;
                 Ti = Tiff([DirectoryOf16bit,'' filesep '',Folder16bitInfoPar(FirstImageFileIndex+i-1).name],'r');
                 ImD = double(Ti.read());
-                Ti.close();     
-                % find quantile value for each image individually 
+                Ti.close();
+                % find quantile value for each image individually
                 ImageQuantiles = quantile(ImD(:),NoOfQuantiles);
                 if UserDefinedQuantile==1  % enable the user to define a value larger than the brightest pixel
                     EstimatedMaxTissueIntensity = max(ImD(:));
                 else
                     EstimatedMaxTissueIntensity = ImageQuantiles(round(UserDefinedQuantile*NoOfQuantiles))
                 end
-                TissuePixelIndices = (ImD<EstimatedMaxTissueIntensity);   
-                % Remove_Peaks and zero pixels     
+                TissuePixelIndices = (ImD<EstimatedMaxTissueIntensity);
+                % Remove_Peaks and zero pixels
                 ImD_Smooth = ImD;
                 Maxes = (ImD > EstimatedMaxTissueIntensity);
                 TissuePixelvalues = ImD(logical(TissuePixelIndices.*(ImD_Smooth<quantile(ImD_Smooth(:),0.9)).*(ImD_Smooth>quantile(ImD_Smooth(:),0.1))));
@@ -375,56 +375,56 @@ else % Normalize with no background detection
                 if ToNormXY
                     ImD_Smooth = Savitzky_Golay(ImD_Smooth,FilterXYPar(1),FilterXYPar(2),1);
                     ImD_Smooth = Savitzky_Golay(ImD_Smooth,FilterXYPar(1),FilterXYPar(2),1); % 2nd time
-                    ImD_Smooth_Norm = ImD_Smooth/max(ImD_Smooth(:));   
+                    ImD_Smooth_Norm = ImD_Smooth/max(ImD_Smooth(:));
                     NormXY = (ImD./ImD_Smooth_Norm);
                     MedNormXY = median(NormXY(:));
                     NormXY = (NormXY/(MedNormXY/median(ImD(:)))); % standartize to old values
                     SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',uint16(NormXY));
                 else  % Skip XY Normalization
                     NormXY = ImD;
-                    SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',uint16(NormXY));       
+                    SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',uint16(NormXY));
                 end
                 NonZeroMaxes = NormXY(:).*(Maxes(:))>0;
                 NewMBI = min(NormXY(NonZeroMaxes));
                 % for Semi-Qantile
                 ImSupp = ones(size(ImD,1),size(ImD,2));
                 ImLin = ImSupp(:)>0;
-                if UserDefinedQuantile ~= 1 
-                   UpperQuantile = NewMBI; 
+                if UserDefinedQuantile ~= 1
+                   UpperQuantile = NewMBI;
                 else
                    UpperQuantile = quantile(NormXY(ImLin),0.99);
                 end
-                Maxes = (NormXY(:) >= UpperQuantile); 
+                Maxes = (NormXY(:) >= UpperQuantile);
                 ImageQuantiles = quantile(NormXY(logical(ImLin.*not(Maxes))),NoOfQuantiles);
-                SemiQuantiles(i,:) =  ImageQuantiles; 
+                SemiQuantiles(i,:) =  ImageQuantiles;
                 % for Contrast Stretch
                 LowerValue = quantile(NormXY(ImLin),0.25);
-                LowerUpperQuantiles(i,:) = [LowerValue UpperQuantile]; 
+                LowerUpperQuantiles(i,:) = [LowerValue UpperQuantile];
                 % for upper precentile
                 EstimatedMaxTissueIntensitySeriers(i) = UpperQuantile;
                 % clc
                 % parfor_progress;
-           
-        
+
+
         end
     else
-        for i = MinIm:MaxIm 
+        for i = MinIm:MaxIm
                 warning('off','all');
                 % init
                 FilterXYPar = FilterXY;
                 Folder16bitInfoPar = Folder16bitInfo;
                 Ti = Tiff([DirectoryOf16bit,'' filesep '',Folder16bitInfoPar(FirstImageFileIndex+i-1).name],'r');
                 ImD = double(Ti.read());
-                Ti.close(); 
-                 %     find quantile value for each image individually 
+                Ti.close();
+                 %     find quantile value for each image individually
                 ImageQuantiles = quantile(ImD(:),NoOfQuantiles);
                 if UserDefinedQuantile==1  % enable the user to define a value larger than the brightest pixel
-                    EstimatedMaxTissueIntensity = max(ImD(:)); 
+                    EstimatedMaxTissueIntensity = max(ImD(:));
                 else
                     EstimatedMaxTissueIntensity = ImageQuantiles(round(UserDefinedQuantile*NoOfQuantiles));
                 end
                 TissuePixelIndices = (ImD<EstimatedMaxTissueIntensity);
-                % Remove_Peaks and zero pixels     
+                % Remove_Peaks and zero pixels
                 ImD_Smooth = ImD;
                 Maxes = (ImD >= EstimatedMaxTissueIntensity);
                 TissuePixelvalues = ImD(logical(TissuePixelIndices.*(ImD_Smooth<quantile(ImD_Smooth(:),0.9)).*(ImD_Smooth>quantile(ImD_Smooth(:),0.1))));
@@ -434,37 +434,37 @@ else % Normalize with no background detection
                 if ToNormXY
                     ImD_Smooth = Savitzky_Golay(ImD_Smooth,FilterXYPar(1),FilterXYPar(2),1);
                     ImD_Smooth = Savitzky_Golay(ImD_Smooth,FilterXYPar(1),FilterXYPar(2),1); % 2nd time
-                    ImD_Smooth_Norm = ImD_Smooth/max(ImD_Smooth(:));   
+                    ImD_Smooth_Norm = ImD_Smooth/max(ImD_Smooth(:));
                     NormXY = (ImD./ImD_Smooth_Norm);
                     MedNormXY = quantile(NormXY(:),0.5);
                     NormXY = (NormXY/(MedNormXY/median(ImD(:)))); % standartize to old values
                     SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',uint16(NormXY));
                 else  % Skip XY Normalization
                     NormXY = ImD;
-                    SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',uint16(NormXY));       
-                end     
+                    SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',uint16(NormXY));
+                end
                 % now that the image is corrected we estimate what the new MBI is.
                 NonZeroMaxes = NormXY(:).*(Maxes(:))>0;
                 NewMBI = min(NormXY(NonZeroMaxes));
                 % for Semi-Qantile
                 ImSupp = ones(size(ImD,1),size(ImD,2));
                 ImLin = ImSupp(:)>0;
-                if UserDefinedQuantile ~= 1 
+                if UserDefinedQuantile ~= 1
                     UpperQuantile = NewMBI;
                 else
                     UpperQuantile = quantile(NormXY(ImLin),0.99);
                 end
-                Maxes = (NormXY(:) >= UpperQuantile); 
+                Maxes = (NormXY(:) >= UpperQuantile);
                 ImageQuantiles = quantile(NormXY(logical(ImLin.*not(Maxes))),NoOfQuantiles);
-                SemiQuantiles(i,:) =  ImageQuantiles; 
+                SemiQuantiles(i,:) =  ImageQuantiles;
                 % for Contrast Stretch
                 LowerValue = quantile(NormXY(ImLin),0.25);
                 LowerUpperQuantiles(i,:) = [LowerValue UpperQuantile];
                 % for upper precentile
                 EstimatedMaxTissueIntensitySeriers(i) = UpperQuantile;
                 % clc
-                % parfor_progress;     
-            
+                % parfor_progress;
+
         end
     end
 end
@@ -473,37 +473,37 @@ if size(LowerUpperQuantiles,1)~=1; LowerUpperQuantilesMean = quantile(LowerUpper
 
 %% Normalize Images along Z
 % clc
-if NormalizeType == 1 % quantile   
+if NormalizeType == 1 % quantile
      if size(SemiQuantiles,1)~=1; SemiQuantilesMean = quantile(SemiQuantiles(MinIm:MaxIm,:),0.98); else ; SemiQuantilesMean = SemiQuantiles; end
 %      StackStatistics = SemiQuantilesMean;
      % parfor_progress(MaxIm-MinIm+1);
-     if Threads 
+     if Threads
          parfor i = MinIm:MaxIm
              i
              warning('off','all');
              Folder16bitInfoPar = Folder16bitInfo;
              ImSizePar = ImSize;
              flag = 1;
-             try 
+             try
                 Ti = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfoPar(FirstImageFileIndex+i-1).name],'r+');
-             catch 
+             catch
                 flag = 0
              end
-             
-             if flag 
+
+             if flag
              ImD = double(Ti.read());
-             % Convert to double 
+             % Convert to double
              if HasBackground
                  Ts = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Tissue_Area_', sprintf('%3.4d',i)],'r');
-                 ImS = Ts.read(); 
+                 ImS = Ts.read();
                  Ts.close();
-             else 
+             else
                  ImS = ImD>=0;
              end
              ImSLin = ImS(:);
              % Remove_Peaks (Somas)
-             if UserDefinedQuantile ~= 1 
-                  UpperQuantile = EstimatedMaxTissueIntensitySeriers(i); 
+             if UserDefinedQuantile ~= 1
+                  UpperQuantile = EstimatedMaxTissueIntensitySeriers(i);
              else
                   UpperQuantile = quantile(ImD(ImSLin),0.95);
              end
@@ -519,12 +519,12 @@ if NormalizeType == 1 % quantile
              QunatiledImd(OrderdImD) = vq;
              NormXYZ(ImSLin) = QunatiledImd;
              NormXYZ = reshape(NormXYZ,ImSizePar(1),ImSizePar(2));
-             NormXYZ(Maxes) = (max(NormXYZ(ImSLin))/min(NormXYZ(Maxes)))*NormXYZ(Maxes); 
+             NormXYZ(Maxes) = (max(NormXYZ(ImSLin))/min(NormXYZ(Maxes)))*NormXYZ(Maxes);
              SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',NormXYZ);
              % parfor_progress;
-             NewMaxes = (NormXYZ(:) >= UpperQuantile); 
+             NewMaxes = (NormXYZ(:) >= UpperQuantile);
             ImageQuantiles = quantile(NormXYZ(logical(ImSLin.*not(NewMaxes))),NoOfQuantiles);
-            NewSemiQuantiles(i,:) =  ImageQuantiles; 
+            NewSemiQuantiles(i,:) =  ImageQuantiles;
             % for Contrast Stretch
             LowerValue = quantile(NormXYZ(ImSLin),0.25);
             NewLowerUpperQuantiles(i,:) = [LowerValue UpperQuantile];
@@ -541,20 +541,20 @@ if NormalizeType == 1 % quantile
              catch
                  flag = 0;
              end
-             if flag 
+             if flag
                 ImD = double(Ti.read());
-             % Convert to double  
+             % Convert to double
              if HasBackground
                  Ts = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Tissue_Area_', sprintf('%3.4d',i)],'r');
-                 ImS = Ts.read(); 
+                 ImS = Ts.read();
                  Ts.close();
-             else 
+             else
                  ImS = ImD>=0;
              end
              ImSLin = ImS(:);
              % Remove_Peaks (Somas)
-             if UserDefinedQuantile ~= 1 
-                 UpperQuantile = EstimatedMaxTissueIntensitySeriers(i); 
+             if UserDefinedQuantile ~= 1
+                 UpperQuantile = EstimatedMaxTissueIntensitySeriers(i);
              else
                  UpperQuantile = quantile(ImD(ImSLin),0.95);
              end
@@ -570,20 +570,20 @@ if NormalizeType == 1 % quantile
              QunatiledImd(OrderdImD) = vq;
              NormXYZ(ImSLin) = QunatiledImd;
              NormXYZ = reshape(NormXYZ,ImSizePar(1),ImSizePar(2));
-             NormXYZ(Maxes) = (max(NormXYZ(ImSLin))/min(NormXYZ(Maxes)))*NormXYZ(Maxes); 
+             NormXYZ(Maxes) = (max(NormXYZ(ImSLin))/min(NormXYZ(Maxes)))*NormXYZ(Maxes);
              SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',NormXYZ);
-             NewMaxes = (NormXYZ(:) >= UpperQuantile); 
+             NewMaxes = (NormXYZ(:) >= UpperQuantile);
             ImageQuantiles = quantile(NormXYZ(logical(ImSLin.*not(NewMaxes))),NoOfQuantiles);
-            NewSemiQuantiles(i,:) =  ImageQuantiles; 
+            NewSemiQuantiles(i,:) =  ImageQuantiles;
             % for Contrast Stretch
             LowerValue = quantile(NormXYZ(ImSLin),0.25);
             NewLowerUpperQuantiles(i,:) = [LowerValue UpperQuantile];
-           
+
              end
          end
      end
-end  
-if NormalizeType == 2 % contrast stretch 
+end
+if NormalizeType == 2 % contrast stretch
    if size(LowerUpperQuantiles,1)~=1; LowerUpperQuantilesMean = quantile(LowerUpperQuantiles(MinIm:MaxIm,:),0.98); else ; LowerUpperQuantilesMean = LowerUpperQuantiles; end
 %    StackStatistics = LowerUpperQuantilesMean;
    % parfor_progress(MaxIm-MinIm+1);
@@ -593,18 +593,18 @@ if NormalizeType == 2 % contrast stretch
            Folder16bitInfoPar = Folder16bitInfo;
            Ti = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfoPar(FirstImageFileIndex+i-1).name],'r+');
            ImD = double(Ti.read());
-           % Convert to double 
+           % Convert to double
            NormXYZ = ImD;
            if HasBackground
                Ts = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Tissue_Area_', sprintf('%3.4d',i)],'r');
-               ImS = Ts.read(); 
+               ImS = Ts.read();
                Ts.close();
            else
                ImS = ImD>=0;
            end
            ImSLin = ImS(:);
-           if UserDefinedQuantile ~= 1 
-               UpperQuantile = LowerUpperQuantiles(i,2); 
+           if UserDefinedQuantile ~= 1
+               UpperQuantile = LowerUpperQuantiles(i,2);
            else
                UpperQuantile = quantile(ImD(ImSLin),0.95);
            end
@@ -612,9 +612,9 @@ if NormalizeType == 2 % contrast stretch
            NormXYZ(ImSLin) = (ImD(ImSLin) - LowerQuantile)*( (LowerUpperQuantilesMean(2) - LowerUpperQuantilesMean(1)) / (UpperQuantile - LowerQuantile) ) + LowerUpperQuantilesMean(1); % contrast sretching
            SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',NormXYZ);
                        % parfor_progress;
-                       NewMaxes = (NormXYZ(:) >= UpperQuantile); 
+                       NewMaxes = (NormXYZ(:) >= UpperQuantile);
             ImageQuantiles = quantile(NormXYZ(logical(ImSLin.*not(NewMaxes))),NoOfQuantiles);
-            NewSemiQuantiles(i,:) =  ImageQuantiles; 
+            NewSemiQuantiles(i,:) =  ImageQuantiles;
             % for Contrast Stretch
             LowerValue = quantile(NormXYZ(ImSLin),0.25);
             NewLowerUpperQuantiles(i,:) = [LowerValue UpperQuantile];
@@ -625,34 +625,34 @@ if NormalizeType == 2 % contrast stretch
            Folder16bitInfoPar = Folder16bitInfo;
            Ti = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfoPar(FirstImageFileIndex+i-1).name],'r+');
            ImD = double(Ti.read());
-           % Convert to double 
+           % Convert to double
            NormXYZ = ImD;
            if HasBackground
                Ts = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Tissue_Area_', sprintf('%3.4d',i)],'r');
-               ImS = Ts.read(); 
+               ImS = Ts.read();
                Ts.close();
-           else 
+           else
                ImS = ImD>=0;
            end
           ImSLin = ImS(:);
-           if UserDefinedQuantile ~= 1 
-               UpperQuantile = LowerUpperQuantiles(i,2); 
+           if UserDefinedQuantile ~= 1
+               UpperQuantile = LowerUpperQuantiles(i,2);
            else
                UpperQuantile = quantile(ImD(ImSLin),0.95);
            end
            LowerQuantile = LowerUpperQuantiles(i,1);
            NormXYZ(ImSLin) = (ImD(ImSLin) - LowerQuantile)*( (LowerUpperQuantilesMean(2) - LowerUpperQuantilesMean(1)) / (UpperQuantile - LowerQuantile) ) + LowerUpperQuantilesMean(1); % contrast sretching
            SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',NormXYZ);
-           NewMaxes = (NormXYZ(:) >= UpperQuantile); 
+           NewMaxes = (NormXYZ(:) >= UpperQuantile);
             ImageQuantiles = quantile(NormXYZ(logical(ImSLin.*not(NewMaxes))),NoOfQuantiles);
-            NewSemiQuantiles(i,:) =  ImageQuantiles; 
+            NewSemiQuantiles(i,:) =  ImageQuantiles;
             % for Contrast Stretch
             LowerValue = quantile(NormXYZ(ImSLin),0.25);
             NewLowerUpperQuantiles(i,:) = [LowerValue UpperQuantile];
-            
+
        end
    end
-end    
+end
  if NormalizeType == 3 % Upper Percentile
      EstimatedMaxTissueIntensitySeriersNorm = EstimatedMaxTissueIntensitySeriers/max(EstimatedMaxTissueIntensitySeriers);
 %      StackStatistics = EstimatedMaxTissueIntensitySeriers;
@@ -662,17 +662,17 @@ end
         warning('off','all');
         Folder16bitInfoPar = Folder16bitInfo;
         Ti = Tiff([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfoPar(FirstImageFileIndex+i-1).name],'r+');
-        NormXY = double(Ti.read());         
+        NormXY = double(Ti.read());
         NormXYZ = (NormXY./EstimatedMaxTissueIntensitySeriersNorm(i)); %Normalize
         SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',NormXYZ);
         % parfor_progress;
-        NewMaxes = (NormXYZ(:) >= UpperQuantile); 
+        NewMaxes = (NormXYZ(:) >= UpperQuantile);
         ImageQuantiles = quantile(NormXYZ(logical(ImLin.*not(NewMaxes))),NoOfQuantiles);
-        SemiQuantiles(i,:) =  ImageQuantiles; 
+        SemiQuantiles(i,:) =  ImageQuantiles;
         % for Contrast Stretch
         LowerValue = quantile(NormXYZ(ImLin),0.25);
         NewLowerUpperQuantiles(i,:) = [LowerValue UpperQuantile];
-       
+
          end
      else
         for i = MinIm:MaxIm
@@ -683,30 +683,30 @@ end
         NormXYZ = (NormXY./EstimatedMaxTissueIntensitySeriersNorm(i)); %Normalize
         SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'Norm_',Folder16bitInfo(FirstImageFileIndex+i-1).name],16,'w',NormXYZ);
         % parfor_progress;
-        NewMaxes = (NormXYZ(:) >= UpperQuantile); 
+        NewMaxes = (NormXYZ(:) >= UpperQuantile);
         ImageQuantiles = quantile(NormXYZ(logical(ImLin.*not(NewMaxes))),NoOfQuantiles);
-        NewSemiQuantiles(i,:) =  ImageQuantiles; 
+        NewSemiQuantiles(i,:) =  ImageQuantiles;
         % for Contrast Stretch
         LowerValue = quantile(NormXYZ(ImLin),0.25);
         NewLowerUpperQuantiles(i,:) = [LowerValue UpperQuantile];
-        
+
         end
      end
-      
- end    
+
+ end
 NewMeanLowerUpperQuantiles = max(NewLowerUpperQuantiles);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% auxillary functions
-% find background 
+% find background
 function SuppImageSmooth = FindBackground(i,DirectoryOf16bit,HasBackground,ImD,Inn,BackroundThreshold,ImSizePar,FilterXY,STDNumber,Save)
     HighQunatile = quantile(ImD(:),0.999);
     HighPixels = (ImD>HighQunatile);
     ImD(HighPixels) = HighQunatile; % remove spikes in flourescence
     if HasBackground == 1 % find background with EM
         PCAscore = ImagePCAInCode(ImD,Inn);
-        [~,BackgroundPixelIndices] = SeperateTissueBackgroundEMInCode(ImD,PCAscore,STDNumber); 
+        [~,BackgroundPixelIndices] = SeperateTissueBackgroundEMInCode(ImD,PCAscore,STDNumber);
     end
     if HasBackground == 2 % find background with adaptive K means
         PCAscore = ImagePCAInCode(ImD,Inn);
@@ -716,7 +716,7 @@ function SuppImageSmooth = FindBackground(i,DirectoryOf16bit,HasBackground,ImD,I
         for k = 2:4
              idx(:,k-1) = kmeans(DoensampledData,k,'Distance','sqEuclidean'); %#ok<AGROW>
              [silh(:,k-1)] = silhouette(DoensampledData,idx(:,k-1),'sqEuclidean'); %#ok<AGROW>
-        end   
+        end
         [~,BestK] = max(mean(abs(silh)));
         BestK = BestK+1;
         BestKInd = cell(BestK,1);
@@ -729,27 +729,27 @@ function SuppImageSmooth = FindBackground(i,DirectoryOf16bit,HasBackground,ImD,I
         end
         [BackgroundMeanValue,BackgroundMean] = min(MeanK(:,1));
         BackgroundPixelIndices = find(PCAscore(:,1) < (BackgroundMeanValue+STDK(BackgroundMean,1)*(19.5-STDNumber*2)));
-    end   
-    if HasBackground == 3 % background brighness     
+    end
+    if HasBackground == 3 % background brighness
        ImDThersh = (ImD>BackroundThreshold);
        ImD(~ImDThersh) = 0;
 %         BackgroundPixelIndices = find(~imbinarize(ImD));
        BW = imbinarize(ImD, 'adaptive', 'Sensitivity', 1, 'ForegroundPolarity', 'bright');
        BackgroundPixelIndices = find(~BW);
-    end     
+    end
     SuppImage = ones(ImSizePar(1),ImSizePar(2));
     SuppImage(BackgroundPixelIndices) = 0;
     warning('off','all');
     SuppFilterXY = round(FilterXY(1))+ mod(round(FilterXY(1)),2)-1;
     SuppImageSmooth = Savitzky_Golay(SuppImage,SuppFilterXY,SuppFilterXY,1);
-    SuppImageSmooth(SuppImageSmooth<0.5) = 0; 
+    SuppImageSmooth(SuppImageSmooth<0.5) = 0;
     SuppImageSmooth(SuppImageSmooth>=0.5) = 1;
     SuppImageSmooth = logical(SuppImageSmooth);
     BW2=imfill(padarray(SuppImageSmooth,size(SuppImageSmooth),'symmetric'),'holes');
     BW2=BW2(size(SuppImageSmooth,1)+(1:size(SuppImageSmooth,1)),size(SuppImageSmooth,2)+(1:size(SuppImageSmooth,2)));
     BW2(ImD==0) = 0;
 %     BW2 = imfill(BW2,'holes');
-    if Save 
+    if Save
         SaveTiffInCode([DirectoryOf16bit,'' filesep 'NormalizedBackground' filesep 'SupportImages' filesep 'Supp_Image_', sprintf('%3.4d',i)],1,'w',BW2);
     end
     % clc
@@ -772,48 +772,48 @@ function ThresholdValue = SimpleThrehold(ImD_Downsampled)
             ThresholdIndex = Candidates(1)+PeakIndex(MaxIndex);
             ThresholdValue = ThresholdJumps(ThresholdIndex);
 end
-% PCA 
+% PCA
 function PCAscore = ImagePCAInCode(ImDBackground,Inn)
-% Filter image  
+% Filter image
     ImSd = stdfilt(ImDBackground, ones(3)); % filter
-    ImMd = medfilt2(ImDBackground);   
+    ImMd = medfilt2(ImDBackground);
     ImDBackgroundND = ImDBackground(Inn);
     ImMd = ImMd(:);
     ImSd = ImSd(:);
-     % PCA for dimentionality reduction and rotation 
+     % PCA for dimentionality reduction and rotation
      [~,PCAscore,~,~,~,~] = pca([ImDBackgroundND ImMd ImSd] ,'NumComponents',2); % changed from 3 to 2 in version 1_3
-     
-end  
-% Seperate TissueBackground with EM 
+
+end
+% Seperate TissueBackground with EM
 function [TissuePixelIndices,BackgroundPixelIndices] = SeperateTissueBackgroundEMInCode(ImD,PCAscore,STDNumber)
     ImDLinear = ImD(:);
 
-    % test for bimodality 
+    % test for bimodality
     [xpdf, ~, ~] = compute_xpdf(PCAscore);
     nboot = 2000;
-    [~, p_value, ~, ~] = HartigansDipSignifTest(xpdf, nboot); 
-    
+    [~, p_value, ~, ~] = HartigansDipSignifTest(xpdf, nboot);
+
     % Gaussian Mixture EM
     if p_value < 0.01 %if bimodal -> perform EM
         NoOfGaussians   = 3; % background and tissue and something else
-        PointForEM = round(length(ImDLinear)/100); % use only 1% for training 
-        jumps = floor(length(PCAscore)/PointForEM);     
+        PointForEM = round(length(ImDLinear)/100); % use only 1% for training
+        jumps = floor(length(PCAscore)/PointForEM);
         TrainingData = PCAscore(1:jumps:end,:);
 
-        [Labeling,~,~] = mixGaussEmInCode(TrainingData',NoOfGaussians); 
+        [Labeling,~,~] = mixGaussEmInCode(TrainingData',NoOfGaussians);
         Cluster1 = TrainingData(Labeling==1,:);
         Cluster2 = TrainingData(Labeling==2,:);
         Cluster3 = TrainingData(Labeling==3,:);
         ClusterMeans = [mean(Cluster1);mean(Cluster2);mean(Cluster3)];
         ClusterSTD = [std(Cluster1);std(Cluster2);std(Cluster3)];
-       
+
         MiniImD =  ImD(:);
         MiniImD = MiniImD(1:jumps:end);
         ClusterIntestinyMean(1) =  mean(MiniImD((Labeling==1)));
         ClusterIntestinyMean(2) =  mean(MiniImD((Labeling==2)));
         ClusterIntestinyMean(3) =  mean(MiniImD((Labeling==3)));
 %             ClusterIntestinyMean(4) =  mean(MiniImD((Labeling==4)));
-        STDs = (STDNumber)^2/100; 
+        STDs = (STDNumber)^2/100;
         [~,SmallSTDClusterIdentity] = min(sum(ClusterSTD,2));
         [~,SmallIntensityClusterIdentity] = min(ClusterIntestinyMean);
         if (SmallSTDClusterIdentity == SmallIntensityClusterIdentity) && (sum(Labeling==SmallIntensityClusterIdentity)>PointForEM/1000)
@@ -821,7 +821,7 @@ function [TissuePixelIndices,BackgroundPixelIndices] = SeperateTissueBackgroundE
             BackgroundSTD = ClusterSTD(SmallSTDClusterIdentity,:);
             InElipseXYZ = ...
               ( ( (PCAscore(:,1)-BackgroundMean(1)).^2 ) / ((BackgroundSTD(1)/(STDs))^2) + ...
-                ( (PCAscore(:,2)-BackgroundMean(2)).^2 ) / ((BackgroundSTD(2)/(STDs))^2) ) <= 1;             
+                ( (PCAscore(:,2)-BackgroundMean(2)).^2 ) / ((BackgroundSTD(2)/(STDs))^2) ) <= 1;
             InElipseIndex = find(InElipseXYZ);
             NotInElipseIndex = find(not(InElipseXYZ));
             BackgroundPixelIndices = InElipseIndex;
@@ -830,14 +830,14 @@ function [TissuePixelIndices,BackgroundPixelIndices] = SeperateTissueBackgroundE
             TissuePixelIndices = find(ImDLinear);
             BackgroundPixelIndices = [];
         end
-        
+
     else % not able to descriminate background found
-    
+
         TissuePixelIndices = find(ImDLinear);
         BackgroundPixelIndices = [];
     end
-%     
-%         figure;hold all; 
+%
+%         figure;hold all;
 %         plot3(PCAscore(1:2000:end,1),PCAscore(1:2000:end,2),PCAscore(1:2000:end,3),'.g')
 %         plot3(ClusterMeans(:,1),ClusterMeans(:,2),ClusterMeans(:,3),'ob','MarkerFaceColor','b','MarkerSize',10)
 %           plot3(PCAscore(InElipseIndex(1:2000:end),1),PCAscore(InElipseIndex(1:2000:end),2),PCAscore(InElipseIndex(1:2000:end),3),'ob')
@@ -941,7 +941,7 @@ function s = logsumexp(X, dim)
 % Compute log(sum(exp(X),dim)) while avoiding numerical underflow.
 %   By default dim = 1 (columns).
 % Written by Mo Chen (sth4nth@gmail.com).
-if nargin == 1 
+if nargin == 1
     % Determine which dimension sum will use
     dim = find(size(X)~=1,1);
     if isempty(dim), dim = 1; end
@@ -958,32 +958,32 @@ end
 
 
 end
-% Calculate the linear indices for neighboring points in a matrix 
+% Calculate the linear indices for neighboring points in a matrix
 function [Iadj , Radj, Nfound ] = neighbourND( index, sizeA, res )
 % function  [Iadj , Radj, Nfound] = neighbour3D( index,  sizeA, res )
-% Calculate the linear indices for neighboring points in a matrix 
+% Calculate the linear indices for neighboring points in a matrix
 % Second output is and array of distances based on an input resolution vector
 % This resolution vector defaults to ones(1,ndims)
 % The output Nfound reports the number of neighbours found in within the
 % matrix. For 2D we expect up to 8, for 3D up to 26 etc...
-% 
+%
 % Example 1:
 % A is a 128x128x16 image data matrix with a spatial resolution of
-% 0.1x 0.25x .375 mm^3 
+% 0.1x 0.25x .375 mm^3
 % to get the neighbouring point linear indices for point 456 we do
 % sizeA = [128 128 16]
 % [ Iadj , Radj, Nfound] = neighbourND( 456, sizeA, [ .10 .25 .375] )
 %
 % NEW: now index can be a column array with linear indices
-% Output Iadj will be Nx8 (2D) or Nx26 (3D) etc and Radj will be 
-% a row array 1x8 or 1x26 etc... 
+% Output Iadj will be Nx8 (2D) or Nx26 (3D) etc and Radj will be
+% a row array 1x8 or 1x26 etc...
 %
 % Example 2:
 % create points near the center of a 144x192x16 matrix
 % spatial resolution .3 x .3x 5 mm^3
 % idx = (-6:1:6)+((144*192*3)+144*96+76)
 %[ Iadj , Radj, Nfound] = neighbourND( idx , [144,192, 32] , [.3, 0.3, 5])
-% Results in 11x26 matrix Iadj, 
+% Results in 11x26 matrix Iadj,
 % 26 distances in Radj and Nfound is 26
 %
 % The neighbour indices outside the matrix will be zero!
@@ -993,15 +993,15 @@ function [Iadj , Radj, Nfound ] = neighbourND( index, sizeA, res )
 %==============================================
 
 %==============================================
-% Ronald Ouwerkerk 2010 NIH/NIDDK 
+% Ronald Ouwerkerk 2010 NIH/NIDDK
 % New version: Now handles arrays of indices
-% This script is made available on Matlab file exchange by the author 
+% This script is made available on Matlab file exchange by the author
 % for use by other Matlab programmers.
 % This script is not intended for commercial use.
-% If used for published work a reference or acknowledgement is greatly 
+% If used for published work a reference or acknowledgement is greatly
 % appreciated.
 % The function was tested for several 1D(col and row), 2D, 3D and 4D cases
-% I cannot be sure that it really works for all dimensionalities. 
+% I cannot be sure that it really works for all dimensionalities.
 % Let me know if you find a bug (and feel free to squash it for me)
 %==============================================
 
@@ -1039,13 +1039,13 @@ else
     end
 end
 
-%% explicit version of ind2sub 
+%% explicit version of ind2sub
 % ind2sub requires multiple output arguments, one for each dimension
 ilin = index(:);
 np = length( ilin );
 imat = ones( np, ndimA);
 
-for di = ndimA:-1:2    
+for di = ndimA:-1:2
     blocksize = prod( sizeA( 1:(di-1)  ) );
     ndi = 1+ floor( ( ilin-1) / blocksize );
     ilin = ilin- (ndi -1) *blocksize;
@@ -1063,7 +1063,7 @@ nneighb = 3^ndimA;
 nbi = zeros( nneighb, ndimA);
 
 di = ndimA;
-while ( di ) 
+while ( di )
     N = 3^(di-1);
     ni = 1:N;
     while( ni(end) < nneighb+1 )
@@ -1087,7 +1087,7 @@ notorig = logical( dvec > 0 );
 % set up the array for neighbour indices
 nd = length( index);
 Iadj = zeros( nd, nneighb );
-kdo = notorig(ones(nd,1), : ); 
+kdo = notorig(ones(nd,1), : );
 
 for di = 1:ndimA
     indices = imat( :, di );
@@ -1099,7 +1099,7 @@ for di = 1:ndimA
     s =logical( neighbindices > 0 ) & s;
     kdo = kdo & s;
     % Calculate the linear index
-    if di == 1       
+    if di == 1
         Iadj( kdo ) =  neighbindices( kdo );
     else
         blocksize = prod( sizeA( 1:(di-1)  ) );
@@ -1142,7 +1142,7 @@ function doublySmoothedImage = Savitzky_Golay(imageArray,WindowV,WindowH,Polynom
 % imshow(imageArray, [0 255]);
 % title('Original Grayscale Image', 'FontSize', fontSize);
 % set(gcf, 'Position', get(0,'Screensize')); % Enlarge figure to full screen.
-% set(gcf,'name','Savitzky-Golay Filter Demo by ImageAnalyst','numbertitle','off') 
+% set(gcf,'name','Savitzky-Golay Filter Demo by ImageAnalyst','numbertitle','off')
 % % Apply the Savitzky-Golay filter.
 % First apply it in the vertical (row) direction.
 k = PolynomialOrder; % Order of the polynomial
@@ -1216,14 +1216,14 @@ if N > 0
     end
     fprintf(f, '%d\n', N); % Save N at the top of progress.txt
     fclose(f);
-    
+
     if nargout == 0
         disp(['  0%[>', repmat(' ', 1, w), ']']);
     end
 elseif N == 0
     delete('parfor_progress.txt');
     percent = 100;
-    
+
     if nargout == 0
         disp([repmat(char(8), 1, (w+9)),sprintf('\n'), '100%[', repmat('=', 1, w+1), ']']);
     end
@@ -1231,16 +1231,16 @@ else
     if ~exist('parfor_progress.txt', 'file')
         error('parfor_progress.txt not found. Run parfor_progress(N) before parfor_progress to initialize parfor_progress.txt.');
     end
-    
+
     f = fopen('parfor_progress.txt', 'a');
     fprintf(f, '1\n');
     fclose(f);
-    
+
     f = fopen('parfor_progress.txt', 'r');
     progress = fscanf(f, '%d');
     fclose(f);
     percent = (length(progress)-1)/progress(1)*100;
-    
+
     if nargout == 0
         perc = sprintf('%3.0f%%', percent); % 4 characters wide, percentage
         disp([repmat(char(8), 1, (w+9)), sprintf('\n'), perc, '[', repmat('=', 1, round(percent*w/100)), '>', repmat(' ', 1, w - round(percent*w/100)), ']']);
@@ -1280,7 +1280,7 @@ p_value=sum(dip<boot_dip)/nboot;
 
 % % Plot Boot-strap sample and the DIP statistic of the empirical pdf
 % figure(1); clf;
-% [hy,hx]=hist(boot_dip); 
+% [hy,hx]=hist(boot_dip);
 % bar(hx,hy,'k'); hold on;
 % plot([dip dip],[0 max(hy)*1.1],'r:');
 end
@@ -1290,7 +1290,7 @@ function	[dip,xl,xu, ifault, gcm, lcm, mn, mj] = HartigansDipTest(xpdf)
 % function	[dip,xl,xu, ifault, gcm, lcm, mn, mj]=HartigansDipTest(xpdf)
 %
 % This is a direct translation by F. Mechler (August 27 2002)
-% into MATLAB from the original FORTRAN code of Hartigan's Subroutine DIPTST algorithm 
+% into MATLAB from the original FORTRAN code of Hartigan's Subroutine DIPTST algorithm
 % Ref: Algorithm AS 217 APPL. STATIST. (1985) Vol. 34. No.3 pg 322-325
 %
 % Appended by F. Mechler (September 2 2002) to deal with a perfectly unimodal input
@@ -1313,7 +1313,7 @@ gcm=zeros(size(x));
 ifault=0;
 
 % Check that N is positive
-if (N<=0) 
+if (N<=0)
    ifault=1;
    fprintf(1,'\nHartigansDipTest.    InputError :  ifault=%d\n',ifault);
    return;
@@ -1350,11 +1350,11 @@ end
 % Check if X is perfectly unimodal
 % Hartigan's original DIPTST algorithm did not check for this condition
 % and DIPTST runs into infinite cycle for a unimodal input
-% The condition that the input is unimodal is equivalent to having 
+% The condition that the input is unimodal is equivalent to having
 % at most 1 sign change in the second derivative of the input p.d.f.
 xsign=-sign(diff(diff(x)));
-% This condition check below works even 
-% if the unimodal p.d.f. has its mode in the very first or last point of the input 
+% This condition check below works even
+% if the unimodal p.d.f. has its mode in the very first or last point of the input
 % because then the boolean argument is Empty Matrix, and ANY returns 1 for an Empty Matrix
 posi=find(xsign>0);
 negi=find(xsign<0);
@@ -1364,7 +1364,7 @@ if isempty(posi) || isempty(negi) || all(posi<min(negi))
    xu=x(N);
    dip=0.0;
    ifault=5;
-	%fprintf(1,'\n  The input is a perfectly UNIMODAL input function\n');
+        %fprintf(1,'\n  The input is a perfectly UNIMODAL input function\n');
    return;
 end
 
@@ -1418,7 +1418,7 @@ end % end  for jk=1:na
 itarate_flag = 1;
 
 % start the cycling of great RECYCLE
-while itarate_flag 
+while itarate_flag
 
 % collect the change points for the GCM from HIGH to LOW
 % CODE BREAK POINT 40
@@ -1463,8 +1463,8 @@ if ~(icx~=2 || icv~=2)
 else
    iterate_BP50=1;
    while iterate_BP50
-		% CODE BREAK POINT 50
-		igcmx=gcm(ix);
+                % CODE BREAK POINT 50
+                igcmx=gcm(ix);
       lcmiv=lcm(iv);
       if ~(igcmx > lcmiv)
          % if the next point of either the GCM or LCM is from the LCM then calculate distance here
@@ -1474,8 +1474,8 @@ else
          b=igcmx-lcmiv1-1;
          dx=(x(igcmx)-x(lcmiv1))*a/(fn*(x(lcmiv)-x(lcmiv1)))-b/fn;
          ix=ix-1;
-         if(dx < d) 
-            goto60 = 1; 
+         if(dx < d)
+            goto60 = 1;
          else
             d=dx;
             ig=ix+1;
@@ -1492,23 +1492,23 @@ else
          b=igcm-igcm1;
          dx=a/fn-((x(lcmiv)-x(igcm1))*b)/(fn*(x(igcm)-x(igcm1)));
          iv=iv+1;
-         if ~(dx < d) 
+         if ~(dx < d)
             d=dx;
             ig=ix+1;
             ih=iv-1;
          end
          goto60 = 1;
       end
-      
+
       if goto60
          % CODE BREAK POINT 60
-         if (ix < 1) 
+         if (ix < 1)
              ix=1;
          end
-         if (iv > icv) 
-             iv=icv; 
+         if (iv > icv)
+             iv=icv;
          end
-         iterate_BP50 = (gcm(ix) ~= lcm(iv)); 
+         iterate_BP50 = (gcm(ix) ~= lcm(iv));
       end
    end % End of WHILE iterate_BP50
 end % End of ELSE (IF ~(icx~=2 | icv~=2)) i.e., either GOTO CODE BREAK POINT 65 OR ELSE GOTO CODE BREAK POINT 50
@@ -1518,7 +1518,7 @@ itarate_flag = ~(d < dip);
 if itarate_flag
 % if itarate_flag is true, then continue calculations and the great iteration cycle
 % if itarate_flag is NOT true, then stop calculations here, and break out of great iteration cycle to BREAK POINT 100
-   
+
 % calculate the DIPs for the corrent LOW and HIGH
 
 % the DIP for the convex minorant
@@ -1528,7 +1528,7 @@ if (ig ~= icx)
    icxa=icx-1;
    for j=ig:icxa
       temp=1.0/fn;
-   	jb=gcm(j+1);
+        jb=gcm(j+1);
       je=gcm(j);
       % if not true either, go to CODE BREAK POINT 74
       if ~(je-jb <= 1)
@@ -1538,15 +1538,15 @@ if (ig ~= icx)
             for jr=jb:je
                b=jr-jb+1;
                t=b/fn-(x(jr)-x(jb))*const;
-               if (t>temp) 
-                   temp=t; 
+               if (t>temp)
+                   temp=t;
                end
             end
          end
       end
       % CODE BREAK POINT 74
-      if (dl < temp) 
-          dl=temp; 
+      if (dl < temp)
+          dl=temp;
       end
    end
 end
@@ -1569,15 +1569,15 @@ if ~(ih==icv)
             for kr=kb:ke
                b=kr-kb-1;
                t=(x(kr)-x(kb))*const-b/fn;
-               if (t>temp) 
-                   temp=t; 
+               if (t>temp)
+                   temp=t;
                end
             end
          end
       end
       % CODE BREAK POINT 86
-      if (du < temp) 
-          du=temp; 
+      if (du < temp)
+          du=temp;
       end
    end
 end
@@ -1585,14 +1585,14 @@ end
 % determine the current maximum
 % CODE BREAK POINT 90
 dipnew=dl;
-if (du > dl) 
-    dipnew=du; 
+if (du > dl)
+    dipnew=du;
 end
-if (dip < dipnew) 
-    dip=dipnew; 
+if (dip < dipnew)
+    dip=dipnew;
 end
 low=gcm(ig);
-high=lcm(ih);      
+high=lcm(ih);
 
 end % end of IF(itarate_flag) CODE from BREAK POINT 65
 
@@ -1607,26 +1607,26 @@ xu=x(high);
 end
 % generate random datasets from empirical distribution
 function xr = emprand(dist,varargin)
-%EMPRAND Generates random numbers from empirical distribution of data.                   
+%EMPRAND Generates random numbers from empirical distribution of data.
 % This is useful when you do not know the distribution type (i.e. normal or
-% uniform), but you have the data and you want to generate random 
+% uniform), but you have the data and you want to generate random
 % numbers form the data. The idea is to first construct cumulative distribution
 % function (cdf) from the given data. Then generate uniform random number and
-% interpolate from cdf. 
+% interpolate from cdf.
 %
 % USAGE:
-%         xr = EMPRAND(dist)        - one random number  
+%         xr = EMPRAND(dist)        - one random number
 %         xr = EMPRAND(dist,m)      - m-by-m random numbers
 %         xr = EMPRAND(dist,m,n)    - m-by-n random numbers
-%                                             
+%
 % INPUT:
-%    dist - vector of distribution i.e. data values                                   
-%       m - generates m-by-m matrix of random numbers  
+%    dist - vector of distribution i.e. data values
+%       m - generates m-by-m matrix of random numbers
 %       n - generates m-by-n matrix of random numbers
-%       
+%
 % OUTPUT:
-%    xr - generated random numbers                                                                       
-%        
+%    xr - generated random numbers
+%
 % EXAMPLES:
 % % Generate 1000 normal random numbers
 % mu = 0; sigma = 1; nr = 1000;
@@ -1644,19 +1644,19 @@ function xr = emprand(dist,varargin)
 % x = sort(givenDist(:));      % Given distribution
 % p = 1:length(x);
 % p = p./length(x);
-% plot(x,p,'color','r');      
+% plot(x,p,'color','r');
 % hold on
 %
 % xr = sort(generatedDist(:)); % Generated distribution
 % pr = 1:length(xr);
 % pr = pr./length(xr);
-% 
+%
 % plot(xr,pr,'color','b');
 % xlabel('x')
 % ylabel('cdf')
 % legend('Given Dist.','Generated Dist.')
 % title('1000 random numbers generated from given normal distribution of data');
-% 
+%
 % HISTORY:
 % version 1.0.0, Release 05-Jul-2005: Initial release
 % version 1.1.0, Release 16-Oct-2007: Some bug fixes and improvement of help text
@@ -1664,7 +1664,7 @@ function xr = emprand(dist,varargin)
 %    2. Extraplolate for out of range
 %    3. Calling function EMPCDF is included within this function
 %
-% See also: 
+% See also:
 
 % Author: Durga Lal Shrestha
 % UNESCO-IHE Institute for Water Education, Delft, The Netherlands
@@ -1681,7 +1681,7 @@ narginchk(1,3);
 if ~isvector(dist)
     error('Invalid data size: input data must be vector')
 end
-if nargin == 2 
+if nargin == 2
     m = varargin{1};
     n = m;
 elseif nargin == 3
@@ -1702,7 +1702,7 @@ x = x(t);
 xlen = length(x);
 x = sort(x);
 p = 1:xlen;
-p = p./xlen;   
+p = p./xlen;
 
 % Generate uniform random number between 0 and 1
 ur =  rand(m,n);
@@ -1729,7 +1729,7 @@ Ti.close();
 
 end
 
-% function Dialog(message,handles) 
+% function Dialog(message,handles)
 %     set(handles.Execute,'FontSize',9);
 %     set(handles.Execute,'ForegroundColor','red');
 %     set(handles.Execute,'String',message);
@@ -1792,13 +1792,13 @@ function Dvec = movingslope(vec,supportlength,modelorder,dt)
 % arguments: (output)
 %  Dvec = vector of derivative estimates, Dvec will be of the same size
 %        and shape as is vec.
-% 
+%
 %
 % Example:
 %  Estimate the first derivative using a 7 point window with first through
 %  fourth order models in the sliding window. Note that the higher order
 %  approximations provide better accuracy on this curve with no noise.
-%  
+%
 %  t = 0:.1:1;
 %  vec = exp(t);
 %
@@ -1836,12 +1836,12 @@ function Dvec = movingslope(vec,supportlength,modelorder,dt)
 %  approximation. In this case, use a straight line so that we know
 %  the true slope should be 1. Use a wide window, since we have
 %  noisy data.
-%  
+%
 %  t = 0:100;
 %  vec = t + randn(size(t));
 %  Dvec = movingslope(vec,10,2,1)
 %  mean(Dvec)
-%  ans = 
+%  ans =
 %     1.0013
 %  std(Dvec)
 %  ans =
@@ -1928,9 +1928,9 @@ for i = 1:s
   % patch the first few points
   t = (1:supportlength)' - i;
   coef = getcoef(t,supportlength,modelorder);
-  
+
   Dvec(i) = coef*vec(1:supportlength);
-  
+
   % patch the end points
   if i<(s + parity)
     t = (1:supportlength)' - supportlength + i - 1;
@@ -1957,39 +1957,39 @@ coef = pinvA(2,:);
 end % nested function end
 
 function [lmval,indd]=lmin(xx,filt)
-%LMIN 	function [lmval,indd]=lmin(x,filt)
+%LMIN   function [lmval,indd]=lmin(x,filt)
 %	Find local minima in vector X, where LMVAL is the output
-%	vector with minima values, INDD is the corresponding indeces 
+%	vector with minima values, INDD is the corresponding indeces
 %	FILT is the number of passes of the small running average filter
 %	in order to get rid of small peaks.  Default value FILT =0 (no
-%	filtering). FILT in the range from 1 to 3 is usially sufficient to 
+%	filtering). FILT in the range from 1 to 3 is usially sufficient to
 %	remove most of a small peaks
 %	Examples:
-%	xx=0:0.01:35; y=sin(xx) + cos(xx ./3); 
+%	xx=0:0.01:35; y=sin(xx) + cos(xx ./3);
 %	plot(xx,y); grid; hold on;
 %	[a b]=lmin(y,2)
-%	 plot(xx(a),y(a),'r+')
+%        plot(xx(a),y(a),'r+')
 %	see also LMAX, MAX, MIN
-	
+
 %
 %**************************************************|
-% 	Serge Koptenko, Guigne International Ltd., |
+%       Serge Koptenko, Guigne International Ltd., |
 %	phone (709)895-3819, fax (709)895-3822     |
 %--------------06/03/97----------------------------|
 
 x=xx;
 len_x = length(x);
-	fltr=[1 1 1]/3;
-  if nargin <2, filt=0; 
-	else
-x1=x(1); x2=x(len_x); 
+        fltr=[1 1 1]/3;
+  if nargin <2, filt=0;
+        else
+x1=x(1); x2=x(len_x);
 
-	for jj=1:filt
-	c=conv(fltr,x);
-	x=c(2:len_x+1);
-	x(1)=x1;  
-        x(len_x)=x2; 
-	end
+        for jj=1:filt
+        c=conv(fltr,x);
+        x=c(2:len_x+1);
+        x(1)=x1;
+        x(len_x)=x2;
+        end
   end
 
 lmval=[];
@@ -1997,35 +1997,35 @@ indd=[];
 i=2;		% start at second data point in time series
 
     while i < len_x-1
-	if x(i) < x(i-1)
-	   if x(i) < x(i+1)	% definite min
+        if x(i) < x(i-1)
+           if x(i) < x(i+1)	% definite min
         lmval =[lmval x(i)]; %#ok<AGROW>
         indd = [ indd i]; %#ok<AGROW>
 
-	   elseif x(i)==x(i+1)&&x(i)==x(i+2)	% 'long' flat spot
-%lmval =[lmval x(i)];	%1   comment these two lines for strict case 
+           elseif x(i)==x(i+1)&&x(i)==x(i+2)	% 'long' flat spot
+%lmval =[lmval x(i)];	%1   comment these two lines for strict case
 %indd = [ indd i];	%2 when only  definite min included
-        i = i + 2;  		% skip 2 points
+        i = i + 2;              % skip 2 points
 
-	   elseif x(i)==x(i+1)	% 'short' flat spot
+           elseif x(i)==x(i+1)	% 'short' flat spot
 %lmval =[lmval x(i)];	%1   comment these two lines for strict case
 %indd = [ indd i];	%2 when only  definite min included
         i = i + 1;		% skip one point
-	   end
-	end
-	i = i + 1;
+           end
+        end
+        i = i + 1;
     end
 
 if filt>0 && ~isempty(indd)
-	if (indd(1)<= 3)||(indd(length(indd))+2>length(xx)) 
-	   rng=1;	%check if index too close to the edge
+        if (indd(1)<= 3)||(indd(length(indd))+2>length(xx))
+           rng=1;	%check if index too close to the edge
     else ; rng=2;
-	end
+        end
 
-	   for ii=1:length(indd) 
-		[val(ii), iind(ii)] = min(xx(indd(ii) -rng:indd(ii) +rng)); %#ok<AGROW>
-		iind(ii)=indd(ii) + iind(ii)  -rng-1; %#ok<AGROW>
-	   end
+           for ii=1:length(indd)
+                [val(ii), iind(ii)] = min(xx(indd(ii) -rng:indd(ii) +rng)); %#ok<AGROW>
+                iind(ii)=indd(ii) + iind(ii)  -rng-1; %#ok<AGROW>
+           end
   indd=iind; lmval=val;
 else
 end
